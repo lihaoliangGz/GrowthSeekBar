@@ -29,6 +29,7 @@ public class GrowthSeekBar extends View {
     private static final float THIRD = 0.333333f;
     private Paint mPaint;
     private int textSize; //字体大小，适用于控件内所有字体的大小;
+    private int textColor; //字体颜色(默认)
     private String currentValue; //当前的成长值
 
     //进度指示框
@@ -83,9 +84,9 @@ public class GrowthSeekBar extends View {
     private String ascentName;  //高一级的等级名称
     private String asscentValue; //高一级的等级成长值;
 
-    private int descentNameStrColor;  //底一级的等级名称字体颜色
-    private int ascentNameStrColor;  //高一级的等级名称字体颜色
     private int valueStrColor; //成长值的字体颜色
+    private Paint descentPaint;  //底一级的等级名称的画笔;
+    private Paint ascentPaint;  //高一级的等级名称的画笔;
     private Paint textPaint;  //标记的文字的画笔
 
     public void setCurrentValue(String currentValue) {
@@ -133,6 +134,7 @@ public class GrowthSeekBar extends View {
     private void initAttrs(AttributeSet attrs) {
         TypedArray ta = getContext().obtainStyledAttributes(attrs, R.styleable.GrowthSeekBar);
         textSize = ta.getDimensionPixelSize(R.styleable.GrowthSeekBar_gsb_text_size, sp2px(12));
+        textColor = ta.getColor(R.styleable.GrowthSeekBar_gsb_text_color, ContextCompat.getColor(getContext(), R.color.color_333333));
 
         //指示牌
         isShowIndicator = ta.getBoolean(R.styleable.GrowthSeekBar_gsb_is_show_indicator, true);
@@ -156,8 +158,6 @@ public class GrowthSeekBar extends View {
         growthIconSize = ta.getDimensionPixelSize(R.styleable.GrowthSeekBar_gsb_growth_icon_size, dp2px(24));
         growthIconPlaceHolderId = ta.getResourceId(R.styleable.GrowthSeekBar_gsb_growth_icon_place_holder_id, R.mipmap.ic_rank_baomi);
         valueStrColor = ta.getDimensionPixelSize(R.styleable.GrowthSeekBar_gsb_value_str_color, ContextCompat.getColor(getContext(), R.color.color_999999));
-        descentNameStrColor = ta.getDimensionPixelSize(R.styleable.GrowthSeekBar_gsb_descent_name_str_color, ContextCompat.getColor(getContext(), R.color.color_333333));
-        ascentNameStrColor = ta.getDimensionPixelSize(R.styleable.GrowthSeekBar_gsb_ascent_name_str_color, ContextCompat.getColor(getContext(), R.color.color_333333));
 
         //等级
         textMarginGrowthIcon = (int) ta.getDimension(R.styleable.GrowthSeekBar_gsb_text_margin_growth_icon, dp2px(4));
@@ -195,10 +195,23 @@ public class GrowthSeekBar extends View {
         trianglePath.setFillType(Path.FillType.EVEN_ODD);
         triangleboderPath = new Path();
 
+        descentPaint = new Paint();
+        descentPaint.setTextSize(textSize);
+        descentPaint.setAntiAlias(true);
+        //descentPaint.setStrokeCap(Paint.Cap.ROUND);
+        descentPaint.setTextAlign(Paint.Align.CENTER);
+
+        ascentPaint = new Paint();
+        ascentPaint.setTextSize(textSize);
+        ascentPaint.setAntiAlias(true);
+        //ascentPaint.setStrokeCap(Paint.Cap.ROUND);
+        ascentPaint.setTextAlign(Paint.Align.CENTER);
+
         textPaint = new Paint();
         textPaint.setTextSize(textSize);
+        textPaint.setColor(valueStrColor);
         textPaint.setAntiAlias(true);
-        textPaint.setStrokeCap(Paint.Cap.ROUND);
+        //textPaint.setStrokeCap(Paint.Cap.ROUND);
         textPaint.setTextAlign(Paint.Align.CENTER);
 
         if (progressRadius <= 0 || progressRadius > progressHeight / 2f) {
@@ -228,9 +241,8 @@ public class GrowthSeekBar extends View {
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
-        int width = MeasureSpec.getSize(widthMeasureSpec);
-        int height = MeasureSpec.getSize(heightMeasureSpec);
-        Log.i("cvb", "onMeasure(GrowthSeekBar): width=" + width + ",height=" + height);
+        Log.i("cvb", "onMeasure(GrowthSeekBar): measuredWidth=" + getMeasuredWidth() + ", measuredHeight=" + getMeasuredHeight());
+        setMeasuredDimension(MeasureSpec.getSize(widthMeasureSpec), dp2px(95));
     }
 
     @Override
@@ -267,15 +279,24 @@ public class GrowthSeekBar extends View {
         }
         if (currentValueInt > ascentValueInt) {
             progress = 1;
+            descentPaint.setColor(textColor);
+            descentPaint.setFakeBoldText(false);
+            ascentPaint.setColor(textColor);
         } else if (currentValueInt < descentValueInt) {
             try {
                 progress = currentValueInt * 100f / descentValueInt * THIRD / 100f;
             } catch (Exception e) {
                 e.printStackTrace();
             }
+            descentPaint.setColor(textColor);
+            descentPaint.setFakeBoldText(false);
+            ascentPaint.setColor(textColor);
         } else {
             try {
-                progress = ((currentValueInt - descentValueInt) * 100f / (ascentValueInt - descentValueInt) * THIRD / 100f);
+                progress = ((currentValueInt - descentValueInt) * 100f / (ascentValueInt - descentValueInt) * THIRD / 100f + THIRD);
+                descentPaint.setColor(indicatorTextColor);
+                descentPaint.setFakeBoldText(true);
+                ascentPaint.setColor(textColor);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -448,15 +469,14 @@ public class GrowthSeekBar extends View {
 
         float descentX = progressBackgroundRect.right * THIRD;  //三分一处的x坐标
         float ascentX = progressBackgroundRect.right * THIRD * 2;  //三分二处的x坐标
-        textPaint.setColor(valueStrColor);
 
         //底一级的图片和名称
         canvas.drawBitmap(descentBmp, descentX - descentBmp.getWidth() / 2f, progressBackgroundRect.top - (descentBmp.getHeight() / 2f - progressHeight / 2f), mPaint);
-        canvas.drawText(descentName, descentX, progressBackgroundRect.bottom + (descentBmp.getHeight() / 2f - progressHeight / 2f) + textMarginGrowthIcon - fm.top, textPaint);
+        canvas.drawText(descentName, descentX, progressBackgroundRect.bottom + (descentBmp.getHeight() / 2f - progressHeight / 2f) + textMarginGrowthIcon - fm.top, descentPaint);
 
         //高一级的图片和名称
         canvas.drawBitmap(ascentBmp, ascentX - ascentBmp.getWidth() / 2f, progressBackgroundRect.top - (ascentBmp.getHeight() / 2f - progressHeight / 2f), mPaint);
-        canvas.drawText(ascentName, ascentX, progressBackgroundRect.bottom + (ascentBmp.getHeight() / 2f - progressHeight / 2f) + textMarginGrowthIcon - fm.top, textPaint);
+        canvas.drawText(ascentName, ascentX, progressBackgroundRect.bottom + (ascentBmp.getHeight() / 2f - progressHeight / 2f) + textMarginGrowthIcon - fm.top, ascentPaint);
 
         //高低级的成长值
         textPaint.setColor(valueStrColor);

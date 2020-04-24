@@ -13,7 +13,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         seekBar = findViewById(R.id.seekBar);
-        seekBar.setCurrentValue("2000");
+        seekBar.setCurrentValue("1");
         seekBar.setDescentName("宝迷");
         seekBar.setDescentValue("2000");
 
