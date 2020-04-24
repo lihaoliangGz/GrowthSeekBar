@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="GrowthSeekBar">
+        <!--common-->
+        <attr name="gsb_text_size" format="dimension" />
+        <!--指示牌-->
+        <attr name="gsb_is_show_indicator" format="boolean" />
+        <attr name="gsb_is_show_indicator_stroke" format="boolean" />
+        <attr name="gsb_indicator_height" format="dimension" />
+        <attr name="gsb_indicator_arrow_height" format="dimension" />
+        <attr name="gsb_indicator_arrow_width" format="dimension" />
+        <attr name="gsb_indicator_text_color" format="color" />
+        <attr name="gsb_indicator_stroke_color" format="color" />
+        <attr name="gsb_indicator_stroke_width" format="dimension" />
+        <attr name="gsb_indicator_margin_bottom" format="dimension" />
+        <attr name="gsb_indicator_background_color" format="color" />
+        <attr name="gsb_indicator_radius" format="dimension" />
+
+        <!--进度条-->
+        <attr name="gsb_progress_height" format="dimension" />
+        <attr name="gsb_progress_background_color" format="color" />
+        <attr name="gsb_progress_color" format="color" />
+        <attr name="gsb_progress_radius" format="dimension" />
+        <attr name="gsb_thumb_id" format="reference" />
+
+        <!--进度标记-->
+        <attr name="gsb_text_margin_growth_icon" format="dimension" />
+        <attr name="gsb_growth_icon_size" format="dimension" />
+        <attr name="gsb_growth_icon_place_holder_id" format="reference" />
+        <attr name="gsb_descent_name_str_color" format="color" />
+        <attr name="gsb_ascent_name_str_color" format="color" />
+        <attr name="gsb_value_str_color" format="color" />
+    </declare-styleable>
+</resources>
