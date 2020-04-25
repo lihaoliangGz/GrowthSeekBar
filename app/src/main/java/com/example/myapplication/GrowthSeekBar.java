@@ -16,6 +16,7 @@ import android.support.v4.content.ContextCompat;
 import android.text.Layout;
 import android.text.StaticLayout;
 import android.text.TextPaint;
+import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.View;
@@ -151,13 +152,13 @@ public class GrowthSeekBar extends View {
 
         //进度条
         progressHeight = ta.getDimensionPixelSize(R.styleable.GrowthSeekBar_gsb_progress_height, sp2px(3));
-        progressBackgroundColor = ta.getColor(R.styleable.GrowthSeekBar_gsb_progress_background_color, ContextCompat.getColor(getContext(), R.color.color_bbbbbb));
+        progressBackgroundColor = ta.getColor(R.styleable.GrowthSeekBar_gsb_progress_background_color, ContextCompat.getColor(getContext(), R.color.color_b3b3b3));
         progressColor = ta.getColor(R.styleable.GrowthSeekBar_gsb_progress_color, ContextCompat.getColor(getContext(), R.color.color_4caa9a));
         progressRadius = ta.getDimensionPixelSize(R.styleable.GrowthSeekBar_gsb_progress_radius, 0);
         thumbId = ta.getResourceId(R.styleable.GrowthSeekBar_gsb_thumb_id, R.mipmap.ic_member_center_seekbar_thumb);
         growthIconSize = ta.getDimensionPixelSize(R.styleable.GrowthSeekBar_gsb_growth_icon_size, dp2px(24));
         growthIconPlaceHolderId = ta.getResourceId(R.styleable.GrowthSeekBar_gsb_growth_icon_place_holder_id, R.mipmap.ic_rank_baomi);
-        valueStrColor = ta.getDimensionPixelSize(R.styleable.GrowthSeekBar_gsb_value_str_color, ContextCompat.getColor(getContext(), R.color.color_999999));
+        valueStrColor = ta.getDimensionPixelSize(R.styleable.GrowthSeekBar_gsb_value_str_color, ContextCompat.getColor(getContext(), R.color.color_999));
 
         //等级
         textMarginGrowthIcon = (int) ta.getDimension(R.styleable.GrowthSeekBar_gsb_text_margin_growth_icon, dp2px(4));
@@ -224,17 +225,18 @@ public class GrowthSeekBar extends View {
 
         thumbBitmap = BitmapFactory.decodeResource(getResources(), thumbId);
 
+        currentValue = "0";
+
         float scaleWidth = progressHeight * 2f / thumbBitmap.getWidth();
         float scaleHeight = progressHeight * 2f / thumbBitmap.getHeight();
         if (scaleWidth > 1 && scaleHeight > 1) { //只放大,不缩小
             Matrix matrix = new Matrix();
             matrix.postScale(scaleWidth, scaleHeight);
-            thumbBitmap = Bitmap.createBitmap(thumbBitmap, 0, 0, thumbBitmap.getWidth(), thumbBitmap.getHeight(), matrix, true);
+            Bitmap scaleBmp = Bitmap.createBitmap(thumbBitmap, 0, 0, thumbBitmap.getWidth(), thumbBitmap.getHeight(), matrix, true);
+            if (scaleBmp != null) {
+                thumbBitmap = scaleBmp;
+            }
         }
-
-
-        //
-
     }
 
 
@@ -255,11 +257,13 @@ public class GrowthSeekBar extends View {
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
         Log.i("cvb", "onDraw(GrowthSeekBar): ");
-        onDrawProgressBar(canvas, mPaint);
-
-        onDrawIndicator(canvas);
-
-        onDrawSteps(canvas);
+        try {
+            onDrawProgressBar(canvas, mPaint);
+            onDrawIndicator(canvas);
+            onDrawSteps(canvas);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     /**
@@ -333,6 +337,9 @@ public class GrowthSeekBar extends View {
     }
 
     private void onDrawIndicator(Canvas canvas) {
+        if (TextUtils.isEmpty(currentValue)) {
+            currentValue = "0";
+        }
         String indicatorText = "成长值 " + currentValue;
         indicatorWidth = (int) (indicatorTextPaint.measureText(indicatorText) + dp2px(8) * 2);
 
@@ -434,23 +441,33 @@ public class GrowthSeekBar extends View {
      * @param canvas
      */
     private void onDrawSteps(Canvas canvas) {
+        //低一级的等级图片
         if (descentBmp == null) {
             descentBmp = BitmapFactory.decodeResource(getResources(), growthIconPlaceHolderId);
         }
+        //注意: Bitmap.createBitmap()会返回null
         Matrix matrixDes = new Matrix();
         int scaleXDes = growthIconSize / descentBmp.getWidth();
         int scaleYDes = growthIconSize / descentBmp.getHeight();
         matrixDes.postScale(scaleXDes, scaleYDes);
-        descentBmp = Bitmap.createBitmap(descentBmp, 0, 0, descentBmp.getWidth(), descentBmp.getHeight(), matrixDes, true);
+        Bitmap scaleDescentBmp = Bitmap.createBitmap(descentBmp, 0, 0, descentBmp.getWidth(), descentBmp.getHeight(), matrixDes, true);
+        if (scaleDescentBmp != null) {
+            descentBmp = scaleDescentBmp;
+        }
 
+        //高一级的等级图片
         if (ascentBmp == null) {
             ascentBmp = BitmapFactory.decodeResource(getResources(), growthIconPlaceHolderId);
         }
+        //注意: Bitmap.createBitmap()会返回null
         Matrix matrixAs = new Matrix();
         int scaleXAs = growthIconSize / ascentBmp.getWidth();
         int scaleYAs = growthIconSize / ascentBmp.getHeight();
         matrixAs.postScale(scaleXAs, scaleYAs);
-        ascentBmp = Bitmap.createBitmap(ascentBmp, 0, 0, ascentBmp.getWidth(), ascentBmp.getHeight(), matrixAs, true);
+        Bitmap scaleAscentBmp = Bitmap.createBitmap(ascentBmp, 0, 0, ascentBmp.getWidth(), ascentBmp.getHeight(), matrixAs, true);
+        if (scaleAscentBmp != null) {
+            ascentBmp = scaleAscentBmp;
+        }
 
         if (descentName == null) {
             descentName = "";
