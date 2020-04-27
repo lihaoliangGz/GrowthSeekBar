@@ -33,6 +33,7 @@
         <attr name="gsb_text_margin_growth_icon" format="dimension" />
         <attr name="gsb_growth_img_size" format="dimension" />
         <attr name="gsb_growth_img_place_holder_id" format="reference" />
-        <attr name="gsb_value_str_color" format="color" />
+        <attr name="gsb_value_text_color" format="color" />
+        <attr name="gsb_is_value_text_bold" format="boolean" />
     </declare-styleable>
 </resources>
