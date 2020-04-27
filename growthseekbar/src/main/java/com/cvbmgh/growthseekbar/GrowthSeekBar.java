@@ -62,7 +62,6 @@ public class GrowthSeekBar extends View {
     private Point point3;
     private StaticLayout valueTextLayout;
 
-
     //进度条
     private int progressLeft, progressTop, progressRight, progressBottom;
     private float curProgressX; //当前进度的x轴坐标，也是滑块中心点的X轴
@@ -409,8 +408,8 @@ public class GrowthSeekBar extends View {
         paint.setColor(progressColor);
         canvas.drawRoundRect(progressRect, progressRadius, progressRadius, paint);
 
-        canvas.drawBitmap(thumbBitmap, progressRect.right - thumbBitmap.getWidth() / 2f,
-                progressTop - (thumbBitmap.getHeight() / 2 - progressHeight / 2), paint);  //后面的/2不能加f
+        canvas.drawBitmap(thumbBitmap, curProgressX - thumbBitmap.getWidth() / 2f,
+                progressTop + progressHeight / 2 - thumbBitmap.getHeight() / 2, paint);  //后面的/2不能加f
     }
 
     private void onDrawIndicator(Canvas canvas) {
