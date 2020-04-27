@@ -4,6 +4,7 @@
         <!--common-->
         <attr name="gsb_text_size" format="dimension" />
         <attr name="gsb_text_color" format="color" />
+
         <!--指示牌-->
         <attr name="gsb_is_show_indicator" format="boolean" />
         <attr name="gsb_is_show_indicator_stroke" format="boolean" />
@@ -25,9 +26,13 @@
         <attr name="gsb_thumb_id" format="reference" />
 
         <!--进度标记-->
+        <attr name="gsb_interval" format="enum">
+            <enum name="third" value="3" />
+            <enum name="fourth" value="4" />
+        </attr>
         <attr name="gsb_text_margin_growth_icon" format="dimension" />
-        <attr name="gsb_growth_icon_size" format="dimension" />
-        <attr name="gsb_growth_icon_place_holder_id" format="reference" />
+        <attr name="gsb_growth_img_size" format="dimension" />
+        <attr name="gsb_growth_img_place_holder_id" format="reference" />
         <attr name="gsb_value_str_color" format="color" />
     </declare-styleable>
 </resources>

@@ -1,4 +1,4 @@
-package com.example.myapplication;
+package com.cvbmgh.growthseekbar;
 
 import android.content.Context;
 import android.content.res.TypedArray;
@@ -6,6 +6,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.CornerPathEffect;
 import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Path;
@@ -18,8 +19,8 @@ import android.text.StaticLayout;
 import android.text.TextPaint;
 import android.text.TextUtils;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.View;
+
 
 /**
  * author : lhl
@@ -28,9 +29,11 @@ import android.view.View;
  */
 public class GrowthSeekBar extends View {
     private static final float THIRD = 0.333333f;
+    private static final float FOURTH = 0.25f;
+
     private Paint mPaint;
-    private int textSize; //字体大小，适用于控件内所有字体的大小;
-    private int textColor; //字体颜色(默认)
+    private int textSize; //字体大小 (默认)
+    private int textColor; //字体颜色 (默认)
     private String currentValue; //当前的成长值
 
     //进度指示框
@@ -38,10 +41,10 @@ public class GrowthSeekBar extends View {
     private boolean isShowIndicatorStroke; //是否显示指示框的边线
     private RectF indicatorRectContent = new RectF();  //指示牌里内容矩形(不包含边线和箭头)
     private RectF indicatorRectAround = new RectF();  //指示牌的矩形(包含边线和箭头)
-    private int indicatorHeight;  //指示框的高度
-    private int indicatorWidth; //宽度
-    private int indicatorArrowHeight; //箭头高度
+    private int indicatorContentHeight;  //指示框的高度(不包括箭头的高度)
+    private int indicatorContentWidth; //宽度
     private int indicatorArrowWight; //箭头宽度
+    private int indicatorArrowHeight; //箭头高度
     private int indicatorTextSize; //字体大小
     private int indicatorTextColor; //字体颜色
     private int indicatorBackgroundColor; //指示框的背景颜色
@@ -62,9 +65,9 @@ public class GrowthSeekBar extends View {
 
     //进度条
     private int progressLeft, progressTop, progressRight, progressBottom;
-    private int currentProgressRight; //
+    private float curProgressX; //当前进度的x轴坐标，也是滑块中心点的X轴
     private float progressRadius;  //进度条圆角
-    private float progress = 0.33333f;  //进度条已完成进度值
+    //private float progress;  //进度条已完成进度值
     private int progressBackgroundColor; //进度条的背景颜色
     private int progressColor;  //进度条已完成进度的颜色
     private int progressHeight; //进度条的高度
@@ -72,12 +75,12 @@ public class GrowthSeekBar extends View {
     private RectF progressRect = new RectF();  //进度条的进度
     private int thumbId;  //滑块
     private Bitmap thumbBitmap;
-    private float thumbCenterX; //滑块中心点的X轴
 
     //进度标记
+    private int interval;   // 进度条分几等份，默认3等份
     private int textMarginGrowthIcon; //文字距离等级图标的距离
-    private int growthIconSize; //等级图片的宽高
-    private int growthIconPlaceHolderId;  //等级图片的占位图
+    private int growthImgSize; //等级图片的宽高
+    private int growthImgPlaceHolderId;  //等级图片的占位图
     private Bitmap descentBmp;  //底一级的等级图片
     private String descentName; //底一级的等级名称
     private String descentValue; //底一级的等级成长值;
@@ -86,16 +89,28 @@ public class GrowthSeekBar extends View {
     private String asscentValue; //高一级的等级成长值;
 
     private int valueStrColor; //成长值的字体颜色
-    private Paint descentPaint;  //底一级的等级名称的画笔;
-    private Paint ascentPaint;  //高一级的等级名称的画笔;
+    private Paint growthNamePaint;  //等级名称的画笔;
     private Paint textPaint;  //标记的文字的画笔
+    private float descentX;   //低一级的x坐标
+    private float ascentX;   //高一级的x坐标
 
     public void setCurrentValue(String currentValue) {
         this.currentValue = currentValue;
     }
 
+    public void setInterval(int interval) {
+        this.interval = interval;
+    }
+
     public void setDescentBmp(Bitmap descentBmp) {
+        if (descentBmp == null) {
+            return;
+        }
         this.descentBmp = descentBmp;
+        Bitmap resizeBmp = resizeBitmap(descentBmp, growthImgSize);
+        if (resizeBmp != null) {
+            this.descentBmp = resizeBmp;
+        }
     }
 
     public void setDescentName(String descentName) {
@@ -107,7 +122,14 @@ public class GrowthSeekBar extends View {
     }
 
     public void setAscentBmp(Bitmap ascentBmp) {
+        if (ascentBmp == null) {
+            return;
+        }
         this.ascentBmp = ascentBmp;
+        Bitmap resizeBmp = resizeBitmap(ascentBmp, growthImgSize);
+        if (resizeBmp != null) {
+            this.ascentBmp = resizeBmp;
+        }
     }
 
     public void setAscentName(String ascentName) {
@@ -118,7 +140,8 @@ public class GrowthSeekBar extends View {
         this.asscentValue = asscentValue;
     }
 
-    public GrowthSeekBar(Context context) {
+    //不能动态创建,只能在xml布局中使用
+    private GrowthSeekBar(Context context) {
         this(context, null);
     }
 
@@ -140,13 +163,13 @@ public class GrowthSeekBar extends View {
         //指示牌
         isShowIndicator = ta.getBoolean(R.styleable.GrowthSeekBar_gsb_is_show_indicator, true);
         isShowIndicatorStroke = ta.getBoolean(R.styleable.GrowthSeekBar_gsb_is_show_indicator_stroke, true);
-        indicatorHeight = ta.getDimensionPixelSize(R.styleable.GrowthSeekBar_gsb_indicator_height, dp2px(22));
-        indicatorArrowWight = ta.getDimensionPixelSize(R.styleable.GrowthSeekBar_gsb_indicator_arrow_width, dp2px(4.5f));
+        indicatorContentHeight = ta.getDimensionPixelSize(R.styleable.GrowthSeekBar_gsb_indicator_height, dp2px(22));
+        indicatorArrowWight = ta.getDimensionPixelSize(R.styleable.GrowthSeekBar_gsb_indicator_arrow_width, dp2px(5f));
         indicatorArrowHeight = ta.getDimensionPixelSize(R.styleable.GrowthSeekBar_gsb_indicator_arrow_height, dp2px(2));
         indicatorTextColor = ta.getColor(R.styleable.GrowthSeekBar_gsb_indicator_text_color, ContextCompat.getColor(getContext(), R.color.color_4caa9a));
         indicatorStrokeColor = ta.getColor(R.styleable.GrowthSeekBar_gsb_indicator_stroke_color, ContextCompat.getColor(getContext(), R.color.color_4caa9a));
         indicatorStrokeWidth = ta.getDimensionPixelSize(R.styleable.GrowthSeekBar_gsb_indicator_stroke_width, dp2px(1));
-        indicatorMarginBottom = ta.getDimensionPixelSize(R.styleable.GrowthSeekBar_gsb_indicator_margin_bottom, dp2px(2.5f));
+        indicatorMarginBottom = ta.getDimensionPixelSize(R.styleable.GrowthSeekBar_gsb_indicator_margin_bottom, dp2px(2f));
         indicatorBackgroundColor = ta.getColor(R.styleable.GrowthSeekBar_gsb_indicator_background_color, Color.WHITE);
         indicatorRadius = ta.getDimensionPixelSize(R.styleable.GrowthSeekBar_gsb_indicator_radius, 0);
 
@@ -155,13 +178,14 @@ public class GrowthSeekBar extends View {
         progressBackgroundColor = ta.getColor(R.styleable.GrowthSeekBar_gsb_progress_background_color, ContextCompat.getColor(getContext(), R.color.color_b3b3b3));
         progressColor = ta.getColor(R.styleable.GrowthSeekBar_gsb_progress_color, ContextCompat.getColor(getContext(), R.color.color_4caa9a));
         progressRadius = ta.getDimensionPixelSize(R.styleable.GrowthSeekBar_gsb_progress_radius, 0);
-        thumbId = ta.getResourceId(R.styleable.GrowthSeekBar_gsb_thumb_id, R.mipmap.ic_member_center_seekbar_thumb);
-        growthIconSize = ta.getDimensionPixelSize(R.styleable.GrowthSeekBar_gsb_growth_icon_size, dp2px(24));
-        growthIconPlaceHolderId = ta.getResourceId(R.styleable.GrowthSeekBar_gsb_growth_icon_place_holder_id, R.mipmap.ic_rank_baomi);
+        thumbId = ta.getResourceId(R.styleable.GrowthSeekBar_gsb_thumb_id, R.drawable.ic_member_center_seekbar_thumb);
+        growthImgSize = ta.getDimensionPixelSize(R.styleable.GrowthSeekBar_gsb_growth_img_size, dp2px(24));
+        growthImgPlaceHolderId = ta.getResourceId(R.styleable.GrowthSeekBar_gsb_growth_img_place_holder_id, R.drawable.ic_rank_baomi);
         valueStrColor = ta.getDimensionPixelSize(R.styleable.GrowthSeekBar_gsb_value_str_color, ContextCompat.getColor(getContext(), R.color.color_999));
 
         //等级
         textMarginGrowthIcon = (int) ta.getDimension(R.styleable.GrowthSeekBar_gsb_text_margin_growth_icon, dp2px(4));
+        interval = ta.getInt(R.styleable.GrowthSeekBar_gsb_interval, 3);
 
         ta.recycle();
     }
@@ -182,6 +206,7 @@ public class GrowthSeekBar extends View {
         indicatorStrokePaint.setStrokeWidth(indicatorStrokeWidth);
         indicatorStrokePaint.setColor(indicatorStrokeColor);
         indicatorStrokePaint.setAntiAlias(true);
+        indicatorStrokePaint.setPathEffect(new CornerPathEffect(4));
 
         indicatorTextPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
         indicatorTextPaint.setStyle(Paint.Style.FILL);
@@ -196,17 +221,13 @@ public class GrowthSeekBar extends View {
         trianglePath.setFillType(Path.FillType.EVEN_ODD);
         triangleboderPath = new Path();
 
-        descentPaint = new Paint();
-        descentPaint.setTextSize(textSize);
-        descentPaint.setAntiAlias(true);
+        growthNamePaint = new Paint();
+        growthNamePaint.setColor(textColor);
+        growthNamePaint.setTextSize(textSize);
+        growthNamePaint.setAntiAlias(true);
         //descentPaint.setStrokeCap(Paint.Cap.ROUND);
-        descentPaint.setTextAlign(Paint.Align.CENTER);
-
-        ascentPaint = new Paint();
-        ascentPaint.setTextSize(textSize);
-        ascentPaint.setAntiAlias(true);
-        //ascentPaint.setStrokeCap(Paint.Cap.ROUND);
-        ascentPaint.setTextAlign(Paint.Align.CENTER);
+        growthNamePaint.setTextAlign(Paint.Align.CENTER);
+        growthNamePaint.setFakeBoldText(true);
 
         textPaint = new Paint();
         textPaint.setTextSize(textSize);
@@ -219,11 +240,14 @@ public class GrowthSeekBar extends View {
             progressRadius = progressHeight / 2f;
         }
 
-        if (indicatorRadius <= 0 || indicatorRadius > indicatorHeight / 2) {
-            indicatorRadius = indicatorHeight / 2;
+        if (indicatorRadius <= 0 || indicatorRadius > indicatorContentHeight / 2) {
+            indicatorRadius = indicatorContentHeight / 2;
         }
 
         thumbBitmap = BitmapFactory.decodeResource(getResources(), thumbId);
+
+        descentBmp = BitmapFactory.decodeResource(getResources(), growthImgPlaceHolderId);
+        ascentBmp = BitmapFactory.decodeResource(getResources(), growthImgPlaceHolderId);
 
         currentValue = "0";
 
@@ -243,20 +267,50 @@ public class GrowthSeekBar extends View {
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
-        Log.i("cvb", "onMeasure(GrowthSeekBar): measuredWidth=" + getMeasuredWidth() + ", measuredHeight=" + getMeasuredHeight());
-        setMeasuredDimension(MeasureSpec.getSize(widthMeasureSpec), dp2px(95));
+        //计算控件的高度
+        int height = sp2px(65); //默认高度65
+        if (isShowIndicator) {
+            if (isShowIndicatorStroke) {
+                height += indicatorStrokeWidth * 2;
+            }
+            height += indicatorContentHeight;
+            height += indicatorArrowHeight;
+            height += indicatorMarginBottom;
+        }
+        setMeasuredDimension(resolveSize(getSuggestedMinimumWidth(), widthMeasureSpec), height);
+
+        //进度条的left,top,right,bottom的值
+        if (isShowIndicator) {
+            progressLeft = getPaddingLeft() + indicatorStrokeWidth + indicatorRadius;
+            progressTop = getPaddingTop() + (growthImgSize / 2 - progressHeight / 2) + indicatorStrokeWidth * 2 + indicatorContentHeight + indicatorArrowHeight + indicatorMarginBottom;
+            progressRight = getMeasuredWidth() - getPaddingRight() - indicatorStrokeWidth - indicatorRadius;
+        } else {
+            progressLeft = getPaddingLeft();
+            progressTop = getPaddingTop() + (growthImgSize / 2 - progressHeight / 2);
+            progressRight = getMeasuredWidth() - getPaddingRight();
+        }
+        progressBottom = progressTop + progressHeight;
+
+
+        //高低级的x坐标
+        if (interval == 4) {
+            descentX = progressLeft + (progressRight - progressLeft) * FOURTH;
+            ascentX = progressLeft + (progressRight - progressLeft) * FOURTH * 3;
+        } else {
+            descentX = progressLeft + (progressRight - progressLeft) * THIRD;
+            ascentX = progressLeft + (progressRight - progressLeft) * THIRD * 2;
+        }
+
     }
 
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
-        Log.i("cvb", "onSizeChanged(GrowthSeekBar): w=" + w + ",h=" + h + ",oldw=" + oldw + ",oleh=" + oldh);
     }
 
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
-        Log.i("cvb", "onDraw(GrowthSeekBar): ");
         try {
             onDrawProgressBar(canvas, mPaint);
             onDrawIndicator(canvas);
@@ -266,11 +320,9 @@ public class GrowthSeekBar extends View {
         }
     }
 
-    /**
-     * 计算出当前的进度
-     */
-    private float computeProgress() {
-        float progress = 0;
+    private float getCurProgressX() {
+        int progressBgGrange = progressRight - progressLeft;
+        float distanceX = 0;
         int currentValueInt = 0;
         int descentValueInt = 0;
         int ascentValueInt = 0;
@@ -282,30 +334,58 @@ public class GrowthSeekBar extends View {
             e.printStackTrace();
         }
         if (currentValueInt > ascentValueInt) {
-            progress = 1;
-            descentPaint.setColor(textColor);
-            descentPaint.setFakeBoldText(false);
-            ascentPaint.setColor(textColor);
-        } else if (currentValueInt < descentValueInt) {
+            if (interval == 4) {
+                distanceX = progressBgGrange * FOURTH * 3.5f;
+            } else {
+                distanceX = progressBgGrange * THIRD * 2.5f;
+            }
+        } else if (currentValueInt == ascentValueInt) {
+            if (interval == 4) {
+                distanceX = progressBgGrange * FOURTH * 3;
+            } else {
+                distanceX = progressBgGrange * THIRD * 2;
+            }
+        } else if (currentValueInt > descentValueInt) {
+
             try {
-                progress = currentValueInt * 100f / descentValueInt * THIRD / 100f;
+                if (interval == 4) {
+                    float baseDist = progressBgGrange * FOURTH + growthImgSize / 2f + thumbBitmap.getWidth() / 2f;
+                    float middleDist = progressBgGrange * FOURTH * 2 - growthImgSize - thumbBitmap.getWidth();
+                    float percent = (currentValueInt - descentValueInt) * 100f / (ascentValueInt - descentValueInt) / 100f;
+                    distanceX = baseDist + middleDist * percent;
+                } else {
+                    float baseDist = progressBgGrange * THIRD + growthImgSize / 2f + thumbBitmap.getWidth() / 2f;
+                    float middleDist = progressBgGrange * THIRD - growthImgSize - thumbBitmap.getWidth();
+                    float percent = (currentValueInt - descentValueInt) * 100f / (ascentValueInt - descentValueInt) / 100f;
+                    distanceX = baseDist + middleDist * percent;
+                }
             } catch (Exception e) {
                 e.printStackTrace();
             }
-            descentPaint.setColor(textColor);
-            descentPaint.setFakeBoldText(false);
-            ascentPaint.setColor(textColor);
+        } else if (currentValueInt == descentValueInt) {
+            if (interval == 4) {
+                distanceX = progressBgGrange * FOURTH;
+            } else {
+                distanceX = progressBgGrange * THIRD;
+            }
         } else {
             try {
-                progress = ((currentValueInt - descentValueInt) * 100f / (ascentValueInt - descentValueInt) * THIRD / 100f + THIRD);
-                descentPaint.setColor(indicatorTextColor);
-                descentPaint.setFakeBoldText(true);
-                ascentPaint.setColor(textColor);
+                float dist;
+                if (interval == 4) {
+                    dist = progressBgGrange * FOURTH - growthImgSize / 2f - thumbBitmap.getWidth() / 2f;
+                } else {
+                    dist = progressBgGrange * THIRD - growthImgSize / 2f - thumbBitmap.getWidth() / 2f;
+                }
+                distanceX = dist * currentValueInt * 100f / descentValueInt / 100f;
             } catch (Exception e) {
                 e.printStackTrace();
             }
         }
-        return progress;
+        float progressX = progressLeft + distanceX;
+        if (progressX < progressLeft) {
+            progressX = progressLeft;
+        }
+        return progressX;
     }
 
     /**
@@ -315,17 +395,10 @@ public class GrowthSeekBar extends View {
      * @param paint
      */
     private void onDrawProgressBar(Canvas canvas, Paint paint) {
-        progressLeft = getPaddingLeft() + indicatorRadius + indicatorStrokeWidth;
-        progressTop = getPaddingTop() + indicatorHeight + indicatorMarginBottom + growthIconSize / 2 + progressHeight / 2;
-        progressRight = getMeasuredWidth() - getPaddingRight() - indicatorRadius - indicatorStrokeWidth;
-        progressBottom = progressTop + progressHeight;
+        curProgressX = getCurProgressX();
 
         progressBackgroundRect.set(progressLeft, progressTop, progressRight, progressBottom);
-        currentProgressRight = (int) (progressRight * computeProgress());
-        if (currentProgressRight < progressLeft) {
-            currentProgressRight = progressLeft;
-        }
-        progressRect.set(progressLeft, progressTop, currentProgressRight, progressBottom);
+        progressRect.set(progressLeft, progressTop, curProgressX, progressBottom);
 
         paint.setColor(progressBackgroundColor);
         canvas.drawRoundRect(progressBackgroundRect, progressRadius, progressRadius, paint);
@@ -337,60 +410,63 @@ public class GrowthSeekBar extends View {
     }
 
     private void onDrawIndicator(Canvas canvas) {
-        if (TextUtils.isEmpty(currentValue)) {
-            currentValue = "0";
+        if (isShowIndicator) {
+            if (TextUtils.isEmpty(currentValue)) {
+                currentValue = "0";
+            }
+            String indicatorText = "成长值 " + currentValue;
+            indicatorContentWidth = (int) (indicatorTextPaint.measureText(indicatorText) + dp2px(8) * 2);
+
+            //指示牌
+            indicatorRectContent.set(curProgressX - indicatorContentWidth / 2f - indicatorStrokeWidth,
+                    getPaddingTop() + indicatorStrokeWidth,
+                    curProgressX + indicatorContentWidth / 2f + indicatorStrokeWidth,
+                    getPaddingTop() + indicatorContentHeight - indicatorArrowHeight);
+
+            // Move if not fit horizontal
+            if (indicatorRectContent.left < getPaddingLeft()) {
+                float difference = -indicatorRectContent.left + getPaddingLeft() + indicatorStrokeWidth;
+                indicatorRectAround.set(indicatorRectContent.left + difference, indicatorRectContent.top, indicatorRectContent.right +
+                        difference, indicatorRectContent.bottom);
+            } else if (indicatorRectContent.right > getMeasuredWidth() - getPaddingRight()) {
+                float difference = indicatorRectContent.right - getMeasuredWidth() + getPaddingRight() + indicatorStrokeWidth;
+                indicatorRectAround.set(indicatorRectContent.left - difference, indicatorRectContent.top, indicatorRectContent.right -
+                        difference, indicatorRectContent.bottom);
+            } else {
+                indicatorRectAround.set(indicatorRectContent.left, indicatorRectContent.top, indicatorRectContent.right,
+                        indicatorRectContent.bottom);
+            }
+
+
+            canvas.drawRoundRect(indicatorRectAround, indicatorRadius, indicatorRadius, indicatorPaint);
+            if (isShowIndicatorStroke) {
+                canvas.drawRoundRect(indicatorRectAround, indicatorRadius, indicatorRadius, indicatorStrokePaint);
+            }
+
+            float difference = 0;
+            if (curProgressX - indicatorArrowWight / 2f < getPaddingLeft() + indicatorStrokeWidth + indicatorRadius) {
+                difference = indicatorRadius - curProgressX + getPaddingLeft() + indicatorStrokeWidth;
+            } else if (curProgressX + indicatorArrowWight / 2 > getMeasuredWidth() - getPaddingRight() - indicatorStrokeWidth - indicatorRadius) {
+                difference = (getMeasuredWidth() - indicatorRadius) - curProgressX - getPaddingRight() - indicatorStrokeWidth;
+            }
+            point1.set((int) (curProgressX - indicatorArrowWight / 2 + difference), getPaddingTop() + indicatorContentHeight - indicatorArrowHeight);
+            point2.set((int) (curProgressX + indicatorArrowWight / 2 + difference), getPaddingTop() + indicatorContentHeight - indicatorArrowHeight);
+            point3.set((int) (curProgressX + difference), getPaddingTop() + indicatorContentHeight + indicatorArrowHeight);
+
+            drawTriangle(canvas, point1, point2, point3, indicatorPaint);
+            if (isShowIndicatorStroke) {
+                drawTriangleStroke(canvas, point1, point2, point3, indicatorStrokePaint);
+            }
+
+            // Draw value text
+            canvas.save();
+            valueTextLayout = new StaticLayout(indicatorText, indicatorTextPaint, indicatorContentWidth, Layout.Alignment.ALIGN_CENTER, 1, 0, false);
+            if (valueTextLayout != null) {
+                canvas.translate(indicatorRectAround.left, indicatorRectAround.top + indicatorRectAround.height() / 2 - valueTextLayout.getHeight() / 2);
+                valueTextLayout.draw(canvas);
+            }
+            canvas.restore();
         }
-        String indicatorText = "成长值 " + currentValue;
-        indicatorWidth = (int) (indicatorTextPaint.measureText(indicatorText) + dp2px(8) * 2);
-
-        //指示牌
-        thumbCenterX = progressRect.right;
-        indicatorRectContent.set(thumbCenterX - indicatorWidth / 2, getPaddingTop(), thumbCenterX + indicatorWidth / 2, indicatorHeight - indicatorArrowHeight + getPaddingTop());
-
-        // Move if not fit horizontal
-        if (indicatorRectContent.left < getPaddingLeft()) {
-            float difference = -indicatorRectContent.left + getPaddingLeft() + indicatorStrokeWidth;
-            indicatorRectAround.set(indicatorRectContent.left + difference, indicatorRectContent.top, indicatorRectContent.right +
-                    difference, indicatorRectContent.bottom);
-        } else if (indicatorRectContent.right > getMeasuredWidth() - getPaddingRight()) {
-            float difference = indicatorRectContent.right - getMeasuredWidth() + getPaddingRight() + indicatorStrokeWidth;
-            indicatorRectAround.set(indicatorRectContent.left - difference, indicatorRectContent.top, indicatorRectContent.right -
-                    difference, indicatorRectContent.bottom);
-        } else {
-            indicatorRectAround.set(indicatorRectContent.left, indicatorRectContent.top, indicatorRectContent.right,
-                    indicatorRectContent.bottom);
-        }
-
-
-        canvas.drawRoundRect(indicatorRectAround, indicatorRadius, indicatorRadius, indicatorPaint);
-        if (isShowIndicatorStroke) {
-            canvas.drawRoundRect(indicatorRectAround, indicatorRadius, indicatorRadius, indicatorStrokePaint);
-        }
-
-        float difference = 0;
-        if (thumbCenterX - indicatorArrowWight / 2f < getPaddingLeft() + indicatorStrokeWidth + indicatorRadius) {
-            difference = indicatorRadius - thumbCenterX + getPaddingLeft() + indicatorStrokeWidth;
-        } else if (thumbCenterX + indicatorArrowWight / 2 > getMeasuredWidth() - getPaddingRight() - indicatorStrokeWidth - indicatorRadius) {
-            difference = (getMeasuredWidth() - indicatorRadius) - thumbCenterX - getPaddingRight() - indicatorStrokeWidth;
-        }
-        point1.set((int) (thumbCenterX - indicatorArrowWight / 2 + difference), indicatorHeight - indicatorArrowHeight + getPaddingTop());
-        point2.set((int) (thumbCenterX + indicatorArrowWight / 2 + difference), indicatorHeight - indicatorArrowHeight + getPaddingTop());
-        point3.set((int) (thumbCenterX + difference), getPaddingTop() + indicatorHeight + indicatorArrowHeight);
-
-
-        drawTriangle(canvas, point1, point2, point3, indicatorPaint);
-        if (isShowIndicatorStroke) {
-            drawTriangleStroke(canvas, point1, point2, point3, indicatorStrokePaint);
-        }
-
-        // Draw value text
-        canvas.save();
-        valueTextLayout = new StaticLayout(indicatorText, indicatorTextPaint, indicatorWidth, Layout.Alignment.ALIGN_CENTER, 1, 0, false);
-        if (valueTextLayout != null) {
-            canvas.translate(indicatorRectAround.left, indicatorRectAround.top + indicatorRectAround.height() / 2 - valueTextLayout.getHeight() / 2);
-            valueTextLayout.draw(canvas);
-        }
-        canvas.restore();
 
     }
 
@@ -441,39 +517,20 @@ public class GrowthSeekBar extends View {
      * @param canvas
      */
     private void onDrawSteps(Canvas canvas) {
-        //低一级的等级图片
+        //低一级的等级图片,名称,成长值数据
         if (descentBmp == null) {
-            descentBmp = BitmapFactory.decodeResource(getResources(), growthIconPlaceHolderId);
+            descentBmp = BitmapFactory.decodeResource(getResources(), growthImgPlaceHolderId);
         }
-        //注意: Bitmap.createBitmap()会返回null
-        Matrix matrixDes = new Matrix();
-        int scaleXDes = growthIconSize / descentBmp.getWidth();
-        int scaleYDes = growthIconSize / descentBmp.getHeight();
-        matrixDes.postScale(scaleXDes, scaleYDes);
-        Bitmap scaleDescentBmp = Bitmap.createBitmap(descentBmp, 0, 0, descentBmp.getWidth(), descentBmp.getHeight(), matrixDes, true);
-        if (scaleDescentBmp != null) {
-            descentBmp = scaleDescentBmp;
-        }
-
-        //高一级的等级图片
-        if (ascentBmp == null) {
-            ascentBmp = BitmapFactory.decodeResource(getResources(), growthIconPlaceHolderId);
-        }
-        //注意: Bitmap.createBitmap()会返回null
-        Matrix matrixAs = new Matrix();
-        int scaleXAs = growthIconSize / ascentBmp.getWidth();
-        int scaleYAs = growthIconSize / ascentBmp.getHeight();
-        matrixAs.postScale(scaleXAs, scaleYAs);
-        Bitmap scaleAscentBmp = Bitmap.createBitmap(ascentBmp, 0, 0, ascentBmp.getWidth(), ascentBmp.getHeight(), matrixAs, true);
-        if (scaleAscentBmp != null) {
-            ascentBmp = scaleAscentBmp;
-        }
-
         if (descentName == null) {
             descentName = "";
         }
         if (descentValue == null) {
             descentValue = "";
+        }
+
+        //高一级的等级图片,名称,成长值数据
+        if (ascentBmp == null) {
+            ascentBmp = BitmapFactory.decodeResource(getResources(), growthImgPlaceHolderId);
         }
         if (ascentName == null) {
             ascentName = "";
@@ -484,22 +541,39 @@ public class GrowthSeekBar extends View {
 
         Paint.FontMetrics fm = textPaint.getFontMetrics();
 
-        float descentX = progressBackgroundRect.right * THIRD;  //三分一处的x坐标
-        float ascentX = progressBackgroundRect.right * THIRD * 2;  //三分二处的x坐标
-
         //底一级的图片和名称
         canvas.drawBitmap(descentBmp, descentX - descentBmp.getWidth() / 2f, progressBackgroundRect.top - (descentBmp.getHeight() / 2f - progressHeight / 2f), mPaint);
-        canvas.drawText(descentName, descentX, progressBackgroundRect.bottom + (descentBmp.getHeight() / 2f - progressHeight / 2f) + textMarginGrowthIcon - fm.top, descentPaint);
+        canvas.drawText(descentName, descentX, progressBackgroundRect.bottom + (descentBmp.getHeight() / 2f - progressHeight / 2f) + textMarginGrowthIcon - fm.top, growthNamePaint);
 
         //高一级的图片和名称
         canvas.drawBitmap(ascentBmp, ascentX - ascentBmp.getWidth() / 2f, progressBackgroundRect.top - (ascentBmp.getHeight() / 2f - progressHeight / 2f), mPaint);
-        canvas.drawText(ascentName, ascentX, progressBackgroundRect.bottom + (ascentBmp.getHeight() / 2f - progressHeight / 2f) + textMarginGrowthIcon - fm.top, ascentPaint);
+        canvas.drawText(ascentName, ascentX, progressBackgroundRect.bottom + (ascentBmp.getHeight() / 2f - progressHeight / 2f) + textMarginGrowthIcon - fm.top, growthNamePaint);
 
         //高低级的成长值
         textPaint.setColor(valueStrColor);
         canvas.drawText(descentValue, descentX, progressBackgroundRect.bottom + (descentBmp.getHeight() / 2f - progressHeight / 2f) + textMarginGrowthIcon - fm.top + fm.bottom - fm.top, textPaint);
         canvas.drawText(asscentValue, ascentX, progressBackgroundRect.bottom + (ascentBmp.getHeight() / 2f - progressHeight / 2f) + textMarginGrowthIcon - fm.top + fm.bottom - fm.top, textPaint);
 
+    }
+
+    /**
+     * 调整图片的大小
+     *
+     * @param bmp
+     * @param targetSize
+     * @return
+     */
+    private Bitmap resizeBitmap(Bitmap bmp, int targetSize) {
+        try {
+            Matrix matrix = new Matrix();
+            float scaleX = targetSize * 1f / bmp.getWidth();
+            float scaleY = targetSize * 1f / bmp.getHeight();
+            matrix.postScale(scaleX, scaleY);
+            return Bitmap.createBitmap(bmp, 0, 0, bmp.getWidth(), bmp.getHeight(), matrix, true);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     /**

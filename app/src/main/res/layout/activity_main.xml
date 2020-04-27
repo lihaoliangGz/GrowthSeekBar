@@ -1,9 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@android:color/white"
+    android:orientation="vertical"
     android:paddingTop="10dp"
     tools:context=".MainActivity">
 
@@ -20,12 +22,32 @@
 
     <!--    </TextView>-->
 
-    <com.example.myapplication.GrowthSeekBar
+    <com.cvbmgh.growthseekbar.GrowthSeekBar
+        android:id="@+id/growthSeekBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:gsb_interval="third"
+        app:gsb_is_show_indicator="true" />
+
+    <Switch
+        android:id="@+id/switchView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp" />
+
+    <SeekBar
         android:id="@+id/seekBar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:paddingLeft="10dp"
-        android:paddingRight="10dp" />
+        android:layout_marginTop="20dp"
+        android:max="25000" />
+
+    <EditText
+        android:id="@+id/editText"
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:inputType="number"
+        android:maxLength="9" />
 
 
-</RelativeLayout>
+</LinearLayout>

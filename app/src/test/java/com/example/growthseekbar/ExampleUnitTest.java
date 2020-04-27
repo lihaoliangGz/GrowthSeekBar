@@ -1,4 +1,4 @@
-package com.example.myapplication;
+package com.example.growthseekbar;
 
 import org.junit.Test;
 
