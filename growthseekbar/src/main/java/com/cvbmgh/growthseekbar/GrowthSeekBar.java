@@ -164,7 +164,7 @@ public class GrowthSeekBar extends View {
         isShowIndicator = ta.getBoolean(R.styleable.GrowthSeekBar_gsb_is_show_indicator, true);
         isShowIndicatorStroke = ta.getBoolean(R.styleable.GrowthSeekBar_gsb_is_show_indicator_stroke, true);
         indicatorContentHeight = ta.getDimensionPixelSize(R.styleable.GrowthSeekBar_gsb_indicator_height, dp2px(22));
-        indicatorArrowWight = ta.getDimensionPixelSize(R.styleable.GrowthSeekBar_gsb_indicator_arrow_width, dp2px(5f));
+        indicatorArrowWight = ta.getDimensionPixelSize(R.styleable.GrowthSeekBar_gsb_indicator_arrow_width, dp2px(6f));
         indicatorArrowHeight = ta.getDimensionPixelSize(R.styleable.GrowthSeekBar_gsb_indicator_arrow_height, dp2px(2));
         indicatorTextColor = ta.getColor(R.styleable.GrowthSeekBar_gsb_indicator_text_color, ContextCompat.getColor(getContext(), R.color.color_4caa9a));
         indicatorStrokeColor = ta.getColor(R.styleable.GrowthSeekBar_gsb_indicator_stroke_color, ContextCompat.getColor(getContext(), R.color.color_4caa9a));
@@ -374,11 +374,11 @@ public class GrowthSeekBar extends View {
             try {
                 float dist;
                 if (interval == 4) {
-                    dist = progressBgGrange * FOURTH - growthImgSize / 2f - thumbBitmap.getWidth() / 2f;
+                    dist = progressBgGrange * FOURTH - growthImgSize / 2f - thumbBitmap.getWidth();
                 } else {
-                    dist = progressBgGrange * THIRD - growthImgSize / 2f - thumbBitmap.getWidth() / 2f;
+                    dist = progressBgGrange * THIRD - growthImgSize / 2f - thumbBitmap.getWidth();
                 }
-                distanceX = dist * currentValueInt * 100f / descentValueInt / 100f;
+                distanceX = thumbBitmap.getWidth() / 2f + dist * currentValueInt * 100f / descentValueInt / 100f;
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -407,6 +407,7 @@ public class GrowthSeekBar extends View {
 
         paint.setColor(progressColor);
         canvas.drawRoundRect(progressRect, progressRadius, progressRadius, paint);
+
 
         canvas.drawBitmap(thumbBitmap, curProgressX - thumbBitmap.getWidth() / 2f,
                 progressTop + progressHeight / 2 - thumbBitmap.getHeight() / 2, paint);  //后面的/2不能加f

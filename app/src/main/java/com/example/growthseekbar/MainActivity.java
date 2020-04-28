@@ -81,6 +81,9 @@ public class MainActivity extends AppCompatActivity {
                 if (!TextUtils.isEmpty(s)) {
                     growthSeekBar.setCurrentValue(s.toString());
                     growthSeekBar.postInvalidate();
+                } else {
+                    growthSeekBar.setCurrentValue("0");
+                    growthSeekBar.postInvalidate();
                 }
             }
 
