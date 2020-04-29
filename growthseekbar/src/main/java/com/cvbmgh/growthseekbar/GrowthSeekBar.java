@@ -12,6 +12,7 @@ import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.Point;
 import android.graphics.RectF;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.content.ContextCompat;
 import android.text.Layout;
@@ -102,14 +103,12 @@ public class GrowthSeekBar extends View {
         this.interval = interval;
     }
 
-    public void setDescentBmp(Bitmap descentBmp) {
-        if (descentBmp == null) {
-            return;
-        }
-        this.descentBmp = descentBmp;
-        Bitmap resizeBmp = resizeBitmap(descentBmp, growthImgSize);
-        if (resizeBmp != null) {
-            this.descentBmp = resizeBmp;
+    public void setDescentBmp(@NonNull Bitmap descentBmp) {
+        Bitmap newBmp = scaleBitmap(descentBmp, growthImgSize);
+        if (newBmp != null) {
+            this.descentBmp = newBmp;
+        } else {
+            this.descentBmp = descentBmp;
         }
     }
 
@@ -121,14 +120,12 @@ public class GrowthSeekBar extends View {
         this.descentValue = descentValue;
     }
 
-    public void setAscentBmp(Bitmap ascentBmp) {
-        if (ascentBmp == null) {
-            return;
-        }
-        this.ascentBmp = ascentBmp;
-        Bitmap resizeBmp = resizeBitmap(ascentBmp, growthImgSize);
-        if (resizeBmp != null) {
-            this.ascentBmp = resizeBmp;
+    public void setAscentBmp(@NonNull Bitmap ascentBmp) {
+        Bitmap newBmp = scaleBitmap(ascentBmp, growthImgSize);
+        if (newBmp != null) {
+            this.ascentBmp = newBmp;
+        } else {
+            this.ascentBmp = ascentBmp;
         }
     }
 
@@ -559,24 +556,8 @@ public class GrowthSeekBar extends View {
 
     }
 
-    /**
-     * 调整图片的大小
-     *
-     * @param bmp
-     * @param targetSize
-     * @return
-     */
-    private Bitmap resizeBitmap(Bitmap bmp, int targetSize) {
-        try {
-            Matrix matrix = new Matrix();
-            float scaleX = targetSize * 1f / bmp.getWidth();
-            float scaleY = targetSize * 1f / bmp.getHeight();
-            matrix.postScale(scaleX, scaleY);
-            return Bitmap.createBitmap(bmp, 0, 0, bmp.getWidth(), bmp.getHeight(), matrix, true);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return null;
+    private Bitmap scaleBitmap(Bitmap bmp, int targetSize) {
+        return Bitmap.createScaledBitmap(bmp, targetSize, targetSize, true);
     }
 
     /**
